@@ -28,24 +28,26 @@ def fetch_insider_stock_changes(year, month, co_id):
 
     # 擷取數據
     extracted_data = []
-    for i, row in enumerate(table.find_all('tr')):
-        # 檢查索引是否在指定的範圍內
-        if any(i in range(start, start + 5) for start in range(2, 93, 6)) or i == 98:
+    rows = table.find_all('tr')
+    for i in range(2, len(rows), 6):
+        section = rows[i:i + 5]  # 取出每個區塊的5個欄
+        for row in section:
             cols = row.find_all('td')
-            selected_cols = [cols[j].text.strip() for j in [0, 1, 2, 4]]
+            if cols:  # 確保該欄有數據
+                selected_cols = [cols[j].text.strip() for j in [0, 1, 2, 4] if j < len(cols)]
 
-            # 將最後一列的字串處理並加總
-            numbers_str = selected_cols[-1]
-            numbers = numbers_str.split()
-            sum_numbers = sum(int(num.replace(',', '')) for num in numbers)
+                # 將最後一欄的字串處理並加總
+                numbers_str = selected_cols[-1]
+                numbers = numbers_str.split()
+                sum_numbers = sum(int(num.replace(',', '')) for num in numbers)
 
-            # 將最後一列字串改用斜線分隔
-            selected_cols[-1] = '/'.join(numbers)
+                # 將最後一欄字串改用斜線分隔
+                selected_cols[-1] = '/'.join(numbers)
 
-            # 如果加總不為0，則將該行添加到數據列表
-            if sum_numbers != 0:
-                selected_cols.append(sum_numbers)
-                extracted_data.append(selected_cols)
+                # 如果加總不為0，則將該列添加到數據列表
+                if sum_numbers == 0:
+                    selected_cols.append(sum_numbers)
+                    extracted_data.append(selected_cols)
     
     return extracted_data
 
