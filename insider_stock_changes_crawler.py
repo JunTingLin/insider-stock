@@ -45,7 +45,7 @@ def fetch_insider_stock_changes(year, month, co_id):
 
 def convert_to_dataframe(data):
     # 將數據轉換為 DataFrame
-    df = pd.DataFrame(data, columns=['身份別', '姓名', '持股種類', '自有集中/自有其它/私募股數/信託股數/質權股數', '本月曾加總合'])
+    df = pd.DataFrame(data, columns=['身份別', '姓名', '持股種類', '自有集中/自有其它/私募股數/信託股數/質權股數', '本月增加總合'])
     return df
 
 
@@ -72,12 +72,34 @@ def fetch_taiwan_stock_codes():
 
     return valid_stock_codes
 
+def fetch_all_insider_stock_changes(year, month):
+    # 獲取所有台股代號
+    stock_codes = fetch_taiwan_stock_codes()
+    stock_codes = stock_codes[:3]  # 為了範例只取前3個
 
+    # 初始化一個空的 DataFrame 來存放所有數據
+    all_data = pd.DataFrame()
+
+    # 遍歷每個股票代號
+    for code in stock_codes:
+        # 獲取該股票代號的內部人員股票變動數據
+        insider_data = fetch_insider_stock_changes(year, month, code)
+
+        # 如果有數據，轉換成 DataFrame 並添加到總表中
+        if insider_data:
+            df = convert_to_dataframe(insider_data)
+            df['股票代號'] = code  # 在 DataFrame 中添加股票代號列
+            all_data = pd.concat([all_data, df], ignore_index=True)
+
+    # 調整列的順序，將股票代號列移至最前面
+    cols = ['股票代號'] + [col for col in all_data.columns if col != '股票代號']
+    all_data = all_data[cols]
+
+    return all_data
 
 
 # 使用函數示例
-data = fetch_insider_stock_changes(112, 12, '2330')
-df = convert_to_dataframe(data)
-print(df)
-# for row in data:
-#     print(row)
+year = 112
+month = 12
+combined_data = fetch_all_insider_stock_changes(year, month)
+print(combined_data)
