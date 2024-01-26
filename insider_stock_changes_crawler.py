@@ -4,6 +4,25 @@ import pandas as pd
 import time
 from fake_useragent import UserAgent
 
+def safe_request(url, data):
+    # 生成隨機的 User-Agent
+    ua = UserAgent()
+    headers = {'User-Agent': ua.random}
+
+    try:
+        response = requests.post(url, data=data, headers=headers)
+        # 檢查是否因為請求過多而被限制
+        if "Overrun" in response.text or "Too many query requests" in response.text:
+            print("請求過多，暫停1分鐘")
+            time.sleep(60)  # 暫停1分鐘
+            return safe_request(url, data)
+        return response
+    except Exception as e:
+        print(f"請求錯誤: {e}")
+        time.sleep(60)  # 出錯時暫停1分鐘
+        return safe_request(url, data)  # 重試請求
+
+
 def fetch_insider_stock_changes(year, month, co_id):
     url = 'https://mops.twse.com.tw/mops/web/ajax_query6_1'
     data = {
@@ -16,11 +35,12 @@ def fetch_insider_stock_changes(year, month, co_id):
         'month': month
     }
 
-    # 生成隨機的 User-Agent
-    ua = UserAgent()
-    headers = {'User-Agent': ua.random}
+    response = safe_request(url, data)
 
-    response = requests.post(url, data=data,  headers=headers)
+    # 將表格保存為 HTML 文件
+    with open(f"tables/response_{co_id}_{year}_{month}.html", "w", encoding='utf-8') as file:
+        file.write(str(response.text))
+
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # 找到表格
@@ -45,7 +65,7 @@ def fetch_insider_stock_changes(year, month, co_id):
                 selected_cols[-1] = '/'.join(numbers)
 
                 # 如果加總不為0，則將該列添加到數據列表
-                if sum_numbers == 0:
+                if sum_numbers != 0:
                     selected_cols.append(sum_numbers)
                     extracted_data.append(selected_cols)
     
@@ -53,7 +73,7 @@ def fetch_insider_stock_changes(year, month, co_id):
 
 def convert_to_dataframe(data):
     # 將數據轉換為 DataFrame
-    df = pd.DataFrame(data, columns=['身份別', '姓名', '持股種類', '自有集中/自有其它/私募股數/信託股數/質權股數', '本月增加總合'])
+    df = pd.DataFrame(data, columns=['身份別', '姓名', '持股種類', '自有集中/自有其它/私募股數/信託股數/質權股數', '本月增加股數總合'])
     return df
 
 
@@ -94,7 +114,7 @@ def fetch_all_insider_stock_changes(year, month):
         try:
             # 計算並打印進度
             progress = (index + 1) / total_stocks * 100
-            print(f"\r正在爬取股票 {code} ({progress:.2f}%)", end='')
+            print(f"正在爬取股票 {code} ({progress:.2f}%)", end='')
 
             # 獲取該股票代號的內部人員股票變動數據
             insider_data = fetch_insider_stock_changes(year, month, code)
