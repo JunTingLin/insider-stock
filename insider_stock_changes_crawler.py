@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
 
 def fetch_insider_stock_changes(year, month, co_id):
     url = 'https://mops.twse.com.tw/mops/web/ajax_query6_1'
@@ -32,6 +33,9 @@ def fetch_insider_stock_changes(year, month, co_id):
             numbers = numbers_str.split()
             sum_numbers = sum(int(num.replace(',', '')) for num in numbers)
 
+            # 將最後一列字串改用斜線分隔
+            selected_cols[-1] = '/'.join(numbers)
+
             # 如果加總不為0，則將該行添加到數據列表
             if sum_numbers != 0:
                 selected_cols.append(sum_numbers)
@@ -39,7 +43,15 @@ def fetch_insider_stock_changes(year, month, co_id):
     
     return extracted_data
 
+def convert_to_dataframe(data):
+    # 將數據轉換為 DataFrame
+    df = pd.DataFrame(data, columns=['身份別', '姓名', '持股種類', '自有集中/自有其它/私募股數/信託股數/質權股數', '本月曾加總合'])
+    return df
+
+
 # 使用函數示例
 data = fetch_insider_stock_changes(112, 12, '2330')
-for row in data:
-    print(row)
+df = convert_to_dataframe(data)
+print(df)
+# for row in data:
+#     print(row)
