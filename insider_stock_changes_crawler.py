@@ -49,6 +49,32 @@ def convert_to_dataframe(data):
     return df
 
 
+def fetch_taiwan_stock_codes():
+    # 從網站獲取數據
+    res = requests.get("http://isin.twse.com.tw/isin/C_public.jsp?strMode=2")
+    df = pd.read_html(res.text)[0]
+
+    # 設定column名稱並清理數據
+    df.columns = df.iloc[0]  # 將第一行設為列名
+    df = df.iloc[2:]  # 移除前兩行
+    df = df.reset_index(drop=True)  # 重設索引
+
+    # 分割「有價證券代號及名稱」列為兩個獨立列
+    df[['有價證券代號', '名稱']] = df['有價證券代號及名稱'].str.split('\u3000', expand=True)
+    df.drop('有價證券代號及名稱', axis=1, inplace=True)  # 移除原始列
+
+    # 調整列的順序
+    cols = ['有價證券代號', '名稱'] + [col for col in df.columns if col not in ['有價證券代號', '名稱']]
+    df = df[cols]
+
+    # 篩選出所有四位數字的股票代號
+    valid_stock_codes = df['有價證券代號'][df['有價證券代號'].str.match(r'^\d{4}$')].tolist()
+
+    return valid_stock_codes
+
+
+
+
 # 使用函數示例
 data = fetch_insider_stock_changes(112, 12, '2330')
 df = convert_to_dataframe(data)
