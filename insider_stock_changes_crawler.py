@@ -1,6 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import time
+from fake_useragent import UserAgent
 
 def fetch_insider_stock_changes(year, month, co_id):
     url = 'https://mops.twse.com.tw/mops/web/ajax_query6_1'
@@ -14,7 +16,11 @@ def fetch_insider_stock_changes(year, month, co_id):
         'month': month
     }
 
-    response = requests.post(url, data=data)
+    # 生成隨機的 User-Agent
+    ua = UserAgent()
+    headers = {'User-Agent': ua.random}
+
+    response = requests.post(url, data=data,  headers=headers)
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # 找到表格
@@ -75,21 +81,36 @@ def fetch_taiwan_stock_codes():
 def fetch_all_insider_stock_changes(year, month):
     # 獲取所有台股代號
     stock_codes = fetch_taiwan_stock_codes()
-    stock_codes = stock_codes[:3]  # 為了範例只取前3個
+    # stock_codes = stock_codes[:3]  # 為了範例只取前3個
+    total_stocks = len(stock_codes)
 
     # 初始化一個空的 DataFrame 來存放所有數據
     all_data = pd.DataFrame()
 
     # 遍歷每個股票代號
-    for code in stock_codes:
-        # 獲取該股票代號的內部人員股票變動數據
-        insider_data = fetch_insider_stock_changes(year, month, code)
+    for index, code in enumerate(stock_codes):
+        try:
+            # 計算並打印進度
+            progress = (index + 1) / total_stocks * 100
+            print(f"\r正在爬取股票 {code} ({progress:.2f}%)", end='')
 
-        # 如果有數據，轉換成 DataFrame 並添加到總表中
-        if insider_data:
-            df = convert_to_dataframe(insider_data)
-            df['股票代號'] = code  # 在 DataFrame 中添加股票代號列
-            all_data = pd.concat([all_data, df], ignore_index=True)
+            # 獲取該股票代號的內部人員股票變動數據
+            insider_data = fetch_insider_stock_changes(year, month, code)
+
+            # 如果有數據，轉換成 DataFrame 並添加到總表中
+            if insider_data:
+                df = convert_to_dataframe(insider_data)
+                df['股票代號'] = code  # 在 DataFrame 中添加股票代號列
+                all_data = pd.concat([all_data, df], ignore_index=True)
+
+            # 每次請求後暫停一段時間
+            time.sleep(1.67)  # 每 5 秒最多 3 個請求，因此每次請求間隔約 1.67 秒
+        
+        except Exception as e:
+            print(f"處理代碼 {code} 時出錯: {e}")
+            # 出錯時保存當前進度
+            all_data.to_excel("combined_data_partial.xlsx", index=False, encoding='utf_8_sig')
+
 
     # 調整列的順序，將股票代號列移至最前面
     cols = ['股票代號'] + [col for col in all_data.columns if col != '股票代號']
@@ -102,4 +123,5 @@ def fetch_all_insider_stock_changes(year, month):
 year = 112
 month = 12
 combined_data = fetch_all_insider_stock_changes(year, month)
-print(combined_data)
+combined_data.to_excel("combined_data.xlsx", index=False)
+print("數據爬取完成！並已將數據保存到 combined_data.xlsx")
