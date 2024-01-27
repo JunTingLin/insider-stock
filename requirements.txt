@@ -1,0 +1,10 @@
+openpyxl # 用於操作Excel檔案
+lxml # XML處理庫，pd.read_html的依賴之一
+html5lib # HTML處理庫，pd.read_html的依賴之一
+requests
+fake_useragent
+pandas
+beautifulsoup4
+jupyterlab
+
+
