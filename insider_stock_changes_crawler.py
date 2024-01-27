@@ -3,6 +3,16 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 from fake_useragent import UserAgent
+import logging
+from datetime import datetime
+
+# 設置日誌配置
+logging.basicConfig(filename='log.txt', 
+                    filemode='a', # a: append, w: overwrite
+                    format='%(asctime)s: %(message)s', 
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO,
+                    encoding='utf-8')
 
 def safe_request(url, data):
     # 生成隨機的 User-Agent
@@ -12,12 +22,14 @@ def safe_request(url, data):
     try:
         response = requests.post(url, data=data, headers=headers)
         # 檢查是否因為請求過多而被限制
-        if "Overrun" in response.text or "Too many query requests" in response.text:
+        if "Overrun" in response.text or "Too many query requests" in response.text or "Forbidden - 查詢過於頻繁" in response.text:
+            logging.info("請求過多，暫停1分鐘")
             print("請求過多，暫停1分鐘")
             time.sleep(60)  # 暫停1分鐘
             return safe_request(url, data)
         return response
     except Exception as e:
+        logging.error(f"請求錯誤: {e}")
         print(f"請求錯誤: {e}")
         time.sleep(60)  # 出錯時暫停1分鐘
         return safe_request(url, data)  # 重試請求
@@ -78,6 +90,9 @@ def convert_to_dataframe(data):
 
 
 def fetch_taiwan_stock_codes():
+    logging.info("正在獲取所有台股代號")
+    print("正在獲取所有台股代號")
+
     # 從網站獲取數據
     res = requests.get("http://isin.twse.com.tw/isin/C_public.jsp?strMode=2")
     df = pd.read_html(res.text)[0]
@@ -95,12 +110,15 @@ def fetch_taiwan_stock_codes():
     cols = ['有價證券代號', '名稱'] + [col for col in df.columns if col not in ['有價證券代號', '名稱']]
     df = df[cols]
 
-    # 篩選出所有四位數字的股票代號
-    valid_stock_codes = df['有價證券代號'][df['有價證券代號'].str.match(r'^\d{4}$')].tolist()
+    # 篩選出所有四位數字的股票代號，且第一位數字不能為0
+    valid_stock_codes = df['有價證券代號'][(df['有價證券代號'].str.match(r'^[1-9]\d{3}$'))].tolist()
 
     return valid_stock_codes
 
 def fetch_all_insider_stock_changes(year, month):
+    logging.info(f"開始爬取數據: {year}年 {month}月")
+    print(f"開始爬取數據: {year}年 {month}月")
+
     # 獲取所有台股代號
     stock_codes = fetch_taiwan_stock_codes()
     # stock_codes = stock_codes[:3]  # 為了範例只取前3個
@@ -114,7 +132,8 @@ def fetch_all_insider_stock_changes(year, month):
         try:
             # 計算並打印進度
             progress = (index + 1) / total_stocks * 100
-            print(f"正在爬取股票 {code} ({progress:.2f}%)", end='')
+            logging.info(f"正在爬取股票 {code} ({progress:.2f}%)")
+            print(f"正在爬取股票 {code} ({progress:.2f}%)")
 
             # 獲取該股票代號的內部人員股票變動數據
             insider_data = fetch_insider_stock_changes(year, month, code)
@@ -129,6 +148,7 @@ def fetch_all_insider_stock_changes(year, month):
             time.sleep(1.67)  # 每 5 秒最多 3 個請求，因此每次請求間隔約 1.67 秒
         
         except Exception as e:
+            logging.error(f"處理代碼 {code} 時出錯: {e}")
             print(f"處理代碼 {code} 時出錯: {e}")
             # 出錯時保存當前進度
             all_data.to_excel("combined_data_partial.xlsx", index=False, encoding='utf_8_sig')
@@ -138,6 +158,9 @@ def fetch_all_insider_stock_changes(year, month):
     cols = ['股票代號'] + [col for col in all_data.columns if col != '股票代號']
     all_data = all_data[cols]
 
+    logging.info("數據爬取完成")
+    print("數據爬取完成")
+
     return all_data
 
 
@@ -146,4 +169,5 @@ year = 112
 month = 12
 combined_data = fetch_all_insider_stock_changes(year, month)
 combined_data.to_excel("combined_data.xlsx", index=False)
-print("數據爬取完成！並已將數據保存到 combined_data.xlsx")
+logging.info("已將數據保存到 combined_data.xlsx")
+print("已將數據保存到 combined_data.xlsx")
