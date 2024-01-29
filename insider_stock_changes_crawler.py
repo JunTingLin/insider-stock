@@ -134,13 +134,15 @@ def fetch_all_insider_stock_changes(year, month):
 
     # 獲取所有台股代號
     stock_codes = fetch_taiwan_stock_codes()
-    # stock_codes = stock_codes[:3]  # 為了範例只取前3個
+    # stock_codes = stock_codes[:20]  # 為了範例只取前20個
     total_stocks = len(stock_codes)
 
     # 初始化一個空的 DataFrame 來存放所有數據
     all_data = pd.DataFrame()
     last_code = None  # 用於儲存上一個股票的代號
     last_closing_price = None  # 用於儲存上一個股票的收盤價
+
+    save_interval = 100  # 每處理100個股票代號後保存一次
 
     # 遍歷每個股票代號
     for index, code in enumerate(stock_codes):
@@ -171,6 +173,13 @@ def fetch_all_insider_stock_changes(year, month):
                     df['持股增加金額'] = None
 
                 all_data = pd.concat([all_data, df], ignore_index=True)
+
+                # 每處理指定數量的股票代號後保存一次
+                if (index + 1) % save_interval == 0:
+                    all_data.to_excel(f"{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
+                    logging.info(f"已將中途數據保存")
+                    print(f"已將中途數據保存")
+
             else:
                 logging.warning(f"股票 {code} 本月增加股數總合為 0")
                 print(f"股票 {code} 本月增加股數總合為 0")
@@ -183,24 +192,24 @@ def fetch_all_insider_stock_changes(year, month):
         # 當使用者中斷程式時，執行以下代碼
             logging.warning("用戶中斷了程式，保存當前數據")
             print("用戶中斷了程式，保存當前數據")
-            all_data.to_excel("combined_data_partial.xlsx", index=False, encoding='utf_8_sig')
+            all_data.to_excel("{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
             raise  # 可以選擇再次引發異常，或者直接結束程式
         
         except Exception as e:
             logging.error(f"處理代碼 {code} 時出錯: {e}")
             print(f"處理代碼 {code} 時出錯: {e}")
             # 出錯時保存當前進度
-            all_data.to_excel("combined_data_partial.xlsx", index=False, encoding='utf_8_sig')
+            all_data.to_excel("{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
 
 
-    adjusted_data = adjust_and_deduplicate_dataframe(all_data, '股票代號')
+    adjusted_data = process_and_sort_dataframe(all_data, '股票代號')
 
     logging.info("數據爬取完成")
     print("數據爬取完成")
 
     return adjusted_data
 
-def adjust_and_deduplicate_dataframe(df, primary_col):
+def process_and_sort_dataframe(df, primary_col):
     # 調整行的順序，將指定行移至最前面
     cols = [primary_col] + [col for col in df.columns if col != primary_col]
     df = df[cols]
@@ -208,13 +217,27 @@ def adjust_and_deduplicate_dataframe(df, primary_col):
     # 移除所有欄位完全相同的重複記錄
     df = df.drop_duplicates()
 
+    # 按照「持股增加金額」降序排序
+    df = df.sort_values(by='持股增加金額', ascending=False)
+
     return df
 
+
+def save_dataframe_to_excel_with_timestamp(df, year, month):
+    # 生成包含時間戳記的檔案名稱
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    file_name = f"{year}_{month}_insider_stock_changes_{timestamp}.xlsx"
+    
+    try:
+        df.to_excel(file_name, index=False)
+        print(f"數據已成功保存到 {file_name}")
+        logging.info(f"數據已成功保存到 {file_name}")
+    except Exception as e:
+        print(f"保存數據時出錯: {e}")
+        logging.error(f"保存數據時出錯: {e}")
 
 # 使用函數示例
 year = 112
 month = 12
 combined_data = fetch_all_insider_stock_changes(year, month)
-combined_data.to_excel("combined_data.xlsx", index=False)
-logging.info("已將數據保存到 combined_data.xlsx")
-print("已將數據保存到 combined_data.xlsx")
+save_dataframe_to_excel_with_timestamp(combined_data, year, month)
