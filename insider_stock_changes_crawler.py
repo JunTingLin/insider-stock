@@ -106,6 +106,27 @@ def fetch_taiwan_stock_codes():
 
     return valid_stock_codes
 
+def fetch_first_day_close_price(year, month, stock_code):
+    logging.info(f"正在獲取 {stock_code} 的當月收盤價")
+    print(f"正在獲取 {stock_code} 的當月收盤價")
+    # 創建一個 Stock 物件
+    stock = twstock.Stock(stock_code)
+
+    # 將民國年轉換為西元年
+    year += 1911
+
+    # 獲取指定年月的股票交易資料
+    stock_data = stock.fetch_from(year, month)
+
+    if stock_data:
+        first_day_data = stock_data[0]
+        first_day_close_price = first_day_data.close
+        return first_day_close_price
+    else:
+        logging.warning(f"無法獲取 {stock_code} 的當月收盤價")
+        print(f"無法獲取 {stock_code} 的當月收盤價")
+        return None
+
 
 def fetch_all_insider_stock_changes(year, month):
     logging.info(f"開始爬取數據: {year}年 {month}月")
@@ -118,6 +139,8 @@ def fetch_all_insider_stock_changes(year, month):
 
     # 初始化一個空的 DataFrame 來存放所有數據
     all_data = pd.DataFrame()
+    last_code = None  # 用於儲存上一個股票的代號
+    last_closing_price = None  # 用於儲存上一個股票的收盤價
 
     # 遍歷每個股票代號
     for index, code in enumerate(stock_codes):
@@ -134,7 +157,24 @@ def fetch_all_insider_stock_changes(year, month):
             if insider_data:
                 df = convert_to_dataframe(insider_data)
                 df['股票代號'] = code  # 在 DataFrame 中添加股票代號列
+
+                # 檢查是否為新的股票代號
+                if code != last_code:
+                    last_closing_price = fetch_first_day_close_price(year, month, code)
+                    last_code = code
+
+                df['當月收盤價'] = last_closing_price
+                if df['當月收盤價'] is not None:
+                    df['本月增加股數總合'] = df['本月增加股數總合'].replace({',': ''}, regex=True).astype(float)
+                    df['持股增加金額'] = df['本月增加股數總合'] * df['當月收盤價']
+                else:
+                    df['持股增加金額'] = None
+
                 all_data = pd.concat([all_data, df], ignore_index=True)
+            else:
+                logging.warning(f"股票 {code} 本月增加股數總合為 0")
+                print(f"股票 {code} 本月增加股數總合為 0")
+                
 
             # 每次請求後暫停一段時間
             time.sleep(1.67)  # 每 5 秒最多 3 個請求，因此每次請求間隔約 1.67 秒
