@@ -5,6 +5,7 @@ import time
 from fake_useragent import UserAgent
 import logging
 from datetime import datetime
+import twstock
 
 # 設置日誌配置
 logging.basicConfig(filename='log.txt', 
@@ -44,7 +45,8 @@ def fetch_insider_stock_changes(year, month, co_id):
         'off': 1,
         'co_id': co_id,
         'year': year,
-        'month': month
+        'month': month,
+        'KIND': 1 # 例如2880華南金就爬第一個即可
     }
 
     response = safe_request(url, data)
@@ -93,27 +95,17 @@ def fetch_taiwan_stock_codes():
     logging.info("正在獲取所有台股代號")
     print("正在獲取所有台股代號")
 
-    # 從網站獲取數據
-    res = requests.get("http://isin.twse.com.tw/isin/C_public.jsp?strMode=2")
-    df = pd.read_html(res.text)[0]
+    # 更新股票代號資料庫
+    twstock.__update_codes()
 
-    # 設定column名稱並清理數據
-    df.columns = df.iloc[0]  # 將第一行設為列名
-    df = df.iloc[2:]  # 移除前兩行
-    df = df.reset_index(drop=True)  # 重設索引
+    # 獲取所有台灣上市櫃公司的股票代號
+    stock_codes = twstock.twse
 
-    # 分割「有價證券代號及名稱」列為兩個獨立列
-    df[['有價證券代號', '名稱']] = df['有價證券代號及名稱'].str.split('\u3000', expand=True)
-    df.drop('有價證券代號及名稱', axis=1, inplace=True)  # 移除原始列
-
-    # 調整列的順序
-    cols = ['有價證券代號', '名稱'] + [col for col in df.columns if col not in ['有價證券代號', '名稱']]
-    df = df[cols]
-
-    # 篩選出所有四位數字的股票代號，且第一位數字不能為0
-    valid_stock_codes = df['有價證券代號'][(df['有價證券代號'].str.match(r'^[1-9]\d{3}$'))].tolist()
+    # 篩選出類型為「股票」或「普通股」的代號
+    valid_stock_codes = [code for code, info in stock_codes.items() if info.type in ['股票', '普通股']]
 
     return valid_stock_codes
+
 
 def fetch_all_insider_stock_changes(year, month):
     logging.info(f"開始爬取數據: {year}年 {month}月")
