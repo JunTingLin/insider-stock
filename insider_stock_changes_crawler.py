@@ -6,6 +6,7 @@ from fake_useragent import UserAgent
 import logging
 from datetime import datetime
 import twstock
+from custom_stock import CustomStock
 
 # 設置日誌配置
 logging.basicConfig(filename='log.txt', 
@@ -109,8 +110,8 @@ def fetch_taiwan_stock_codes():
 def fetch_first_day_close_price(year, month, stock_code):
     logging.info(f"正在獲取 {stock_code} 的當月收盤價")
     print(f"正在獲取 {stock_code} 的當月收盤價")
-    # 創建一個 Stock 物件
-    stock = twstock.Stock(stock_code)
+    # 創建一個 CustomStock 物件
+    stock = CustomStock(stock_code)
 
     # 將民國年轉換為西元年
     year += 1911
@@ -192,14 +193,14 @@ def fetch_all_insider_stock_changes(year, month):
         # 當使用者中斷程式時，執行以下代碼
             logging.warning("用戶中斷了程式，保存當前數據")
             print("用戶中斷了程式，保存當前數據")
-            all_data.to_excel("{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
+            all_data.to_excel(f"{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
             raise  # 可以選擇再次引發異常，或者直接結束程式
         
         except Exception as e:
             logging.error(f"處理代碼 {code} 時出錯: {e}")
             print(f"處理代碼 {code} 時出錯: {e}")
             # 出錯時保存當前進度
-            all_data.to_excel("{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
+            all_data.to_excel(f"{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
 
 
     adjusted_data = process_and_sort_dataframe(all_data, '股票代號')
