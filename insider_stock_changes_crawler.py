@@ -138,6 +138,13 @@ def fetch_all_insider_stock_changes(year, month):
 
             # 每次請求後暫停一段時間
             time.sleep(1.67)  # 每 5 秒最多 3 個請求，因此每次請求間隔約 1.67 秒
+
+        except KeyboardInterrupt:
+        # 當使用者中斷程式時，執行以下代碼
+            logging.warning("用戶中斷了程式，保存當前數據")
+            print("用戶中斷了程式，保存當前數據")
+            all_data.to_excel("combined_data_partial.xlsx", index=False, encoding='utf_8_sig')
+            raise  # 可以選擇再次引發異常，或者直接結束程式
         
         except Exception as e:
             logging.error(f"處理代碼 {code} 時出錯: {e}")
@@ -146,14 +153,22 @@ def fetch_all_insider_stock_changes(year, month):
             all_data.to_excel("combined_data_partial.xlsx", index=False, encoding='utf_8_sig')
 
 
-    # 調整列的順序，將股票代號列移至最前面
-    cols = ['股票代號'] + [col for col in all_data.columns if col != '股票代號']
-    all_data = all_data[cols]
+    adjusted_data = adjust_and_deduplicate_dataframe(all_data, '股票代號')
 
     logging.info("數據爬取完成")
     print("數據爬取完成")
 
-    return all_data
+    return adjusted_data
+
+def adjust_and_deduplicate_dataframe(df, primary_col):
+    # 調整行的順序，將指定行移至最前面
+    cols = [primary_col] + [col for col in df.columns if col != primary_col]
+    df = df[cols]
+
+    # 移除所有欄位完全相同的重複記錄
+    df = df.drop_duplicates()
+
+    return df
 
 
 # 使用函數示例
