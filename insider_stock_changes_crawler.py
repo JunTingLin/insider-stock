@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 import twstock
 from custom_stock import CustomStock
+from insider_stock_notifier import send_email
 
 # 設置日誌配置
 logging.basicConfig(filename='log.txt', 
@@ -53,8 +54,8 @@ def fetch_insider_stock_changes(year, month, co_id):
     response = safe_request(url, data)
 
     # 將表格保存為 HTML 文件
-    with open(f"tables/response_{co_id}_{year}_{month}.html", "w", encoding='utf-8') as file:
-        file.write(str(response.text))
+    # with open(f"tables/response_{co_id}_{year}_{month}.html", "w", encoding='utf-8') as file:
+    #     file.write(str(response.text))
 
     soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -233,12 +234,31 @@ def save_dataframe_to_excel_with_timestamp(df, year, month):
         df.to_excel(file_name, index=False)
         print(f"數據已成功保存到 {file_name}")
         logging.info(f"數據已成功保存到 {file_name}")
+
     except Exception as e:
         print(f"保存數據時出錯: {e}")
         logging.error(f"保存數據時出錯: {e}")
+        file_name = None  # 如果出現錯誤，返回 None
+
+    return file_name
+
+def send_report_email(year, month, file_name, data_folder_url, recipient_emails):
+    # 從 HTML 文件讀取模板
+    with open('html_body_template.html', 'r', encoding='utf-8') as file:
+        html_body_template = file.read()
+
+    # 格式化 HTML 內容
+    html_body = html_body_template.format(year=year, month=month, url=data_folder_url, file_name=file_name)
+    # 發送郵件
+    send_email(f"{year}, {month} 內部人持股異動報告", html_body, recipient_emails)
+
 
 # 使用函數示例
 year = 112
 month = 12
+recipient_emails = ["recipient1@example.com", "recipient2@example.com"]
+data_folder_url = "https://example.com/data/"
 combined_data = fetch_all_insider_stock_changes(year, month)
-save_dataframe_to_excel_with_timestamp(combined_data, year, month)
+file_name = save_dataframe_to_excel_with_timestamp(combined_data, year, month)
+if file_name:
+    send_report_email(year, month, file_name, data_folder_url, recipient_emails)
