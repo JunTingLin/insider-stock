@@ -6,5 +6,6 @@ fake_useragent
 pandas
 beautifulsoup4
 jupyterlab
+twstock
 
 
