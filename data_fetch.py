@@ -171,7 +171,7 @@ def fetch_all_insider_stock_changes(year, month):
                     print(f"已將中途數據保存")
 
             else:
-                logging.warning(f"股票 {code} 本月增加股數總合為 0")
+                logging.info(f"股票 {code} 本月增加股數總合為 0")
                 print(f"股票 {code} 本月增加股數總合為 0")
                 
 
