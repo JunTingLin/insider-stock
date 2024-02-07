@@ -30,7 +30,7 @@ def safe_request(url, data):
         return safe_request(url, data)  # 重試請求
 
 
-def fetch_insider_stock_changes(year, month, co_id):
+def fetch_insider_stock_changes(year_str, month_str, co_id):
     url = 'https://mops.twse.com.tw/mops/web/ajax_query6_1'
     data = {
         'encodeURIComponent': 1,
@@ -38,15 +38,15 @@ def fetch_insider_stock_changes(year, month, co_id):
         'firstin': 1,
         'off': 1,
         'co_id': co_id,
-        'year': year,
-        'month': month,
+        'year': year_str,
+        'month': month_str,
         'KIND': 1 # 例如2880華南金就爬第一個即可
     }
 
     response = safe_request(url, data)
 
     # 將表格保存為 HTML 文件
-    # with open(f"tables/response_{co_id}_{year}_{month}.html", "w", encoding='utf-8') as file:
+    # with open(f"tables/response_{co_id}_{year_str}_{month_str}.html", "w", encoding='utf-8') as file:
     #     file.write(str(response.text))
 
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -95,12 +95,15 @@ def fetch_taiwan_stock_codes():
     return valid_stock_codes
 
 
-def fetch_first_day_close_price(year, month, stock_code):
+def fetch_first_day_close_price(year_str, month_str, stock_code):
     logging.info(f"正在獲取 {stock_code} 的當月收盤價")
     print(f"正在獲取 {stock_code} 的當月收盤價")
     # 創建一個 CustomStock 物件
     stock = CustomStock(stock_code)
 
+    # 將年份和月份從字串轉換為整數
+    year = int(year_str)
+    month = int(month_str)
     # 將民國年轉換為西元年
     year += 1911
 
@@ -117,9 +120,9 @@ def fetch_first_day_close_price(year, month, stock_code):
         return None
 
 
-def fetch_all_insider_stock_changes(year, month):
-    logging.info(f"開始爬取數據: {year}年 {month}月")
-    print(f"開始爬取數據: {year}年 {month}月")
+def fetch_all_insider_stock_changes(year_str, month_str):
+    logging.info(f"開始爬取數據: {year_str}年 {month_str}月")
+    print(f"開始爬取數據: {year_str}年 {month_str}月")
 
     # 獲取所有台股代號
     stock_codes = fetch_taiwan_stock_codes()
@@ -142,7 +145,7 @@ def fetch_all_insider_stock_changes(year, month):
             print(f"正在爬取股票 {code} ({progress:.2f}%)")
 
             # 獲取該股票代號的內部人員股票變動數據
-            insider_data = fetch_insider_stock_changes(year, month, code)
+            insider_data = fetch_insider_stock_changes(year_str, month_str, code)
 
             # 如果有數據，轉換成 DataFrame 並添加到總表中
             if insider_data:
@@ -151,12 +154,12 @@ def fetch_all_insider_stock_changes(year, month):
 
                 # 檢查是否為新的股票代號
                 if code != last_code:
-                    last_closing_price = fetch_first_day_close_price(year, month, code)
+                    last_closing_price = fetch_first_day_close_price(year_str, month_str, code)
                     last_code = code
 
                 df['當月收盤價'] = last_closing_price
                 if df['當月收盤價'] is not None:
-                    # df['本月增加股數(集中市場)'] = df['本月增加股數(集中市場)'].replace({',': ''}, regex=True).astype(float)
+                    df['本月增加股數(集中市場)'] = df['本月增加股數(集中市場)'].replace({',': ''}, regex=True).astype(float)
                     df['持股增加金額'] = df['本月增加股數(集中市場)'] * df['當月收盤價']
                 else:
                     df['持股增加金額'] = None
@@ -165,7 +168,7 @@ def fetch_all_insider_stock_changes(year, month):
 
                 # 每處理指定數量的股票代號後保存一次
                 if (index + 1) % save_interval == 0:
-                    all_data.to_excel(f"{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
+                    all_data.to_excel(f"{year_str}_{month_str}_temp.xlsx", index=False, encoding='utf_8_sig')
                     logging.info(f"已將中途數據保存")
                     print(f"已將中途數據保存")
 
@@ -181,14 +184,14 @@ def fetch_all_insider_stock_changes(year, month):
         # 當使用者中斷程式時，執行以下代碼
             logging.warning("用戶中斷了程式，保存當前數據")
             print("用戶中斷了程式，保存當前數據")
-            all_data.to_excel(f"{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
+            all_data.to_excel(f"{year_str}_{month_str}_temp.xlsx", index=False, encoding='utf_8_sig')
             raise  # 可以選擇再次引發異常，或者直接結束程式
         
         except Exception as e:
             logging.error(f"處理代碼 {code} 時出錯: {e}")
             print(f"處理代碼 {code} 時出錯: {e}")
             # 出錯時保存當前進度
-            all_data.to_excel(f"{year}_{month}_temp.xlsx", index=False, encoding='utf_8_sig')
+            all_data.to_excel(f"{year_str}_{month_str}_temp.xlsx", index=False, encoding='utf_8_sig')
 
 
     adjusted_data = process_and_sort_dataframe(all_data, '股票代號')
