@@ -62,19 +62,18 @@ def fetch_insider_stock_changes(year, month, co_id):
         for row in section:
             cols = row.find_all('td')
             if cols:  # 確保該欄有數據
-                selected_cols = [cols[j].text.strip() for j in [0, 1, 2, 4] if j < len(cols)]
+                selected_cols = [cols[j].text.strip() for j in [0, 1, 2]]
 
-                # 將最後一欄的字串處理並加總
-                numbers_str = selected_cols[-1]
-                numbers = numbers_str.split()
-                sum_numbers = sum(int(num.replace(',', '')) for num in numbers)
+                # 將最後一欄(本月增加)分割字串
+                numbers_increase_str = cols[4].text.strip()
+                numbers_increase = numbers_increase_str.split()
 
-                # 將最後一欄字串改用斜線分隔
-                selected_cols[-1] = '/'.join(numbers)
+                # 將 numbers_increase[0] 轉換成整數，並處理逗號
+                number_increase = int(numbers_increase[0].replace(',', ''))
 
-                # 如果加總不為0，則將該列添加到數據列表
-                if sum_numbers != 0:
-                    selected_cols.append(sum_numbers)
+                # 如果自有股數(集中)不為0，則將該列添加到數據列表
+                if number_increase != 0:
+                    selected_cols.append(number_increase)
                     extracted_data.append(selected_cols)
     
     return extracted_data
@@ -157,8 +156,8 @@ def fetch_all_insider_stock_changes(year, month):
 
                 df['當月收盤價'] = last_closing_price
                 if df['當月收盤價'] is not None:
-                    df['本月增加股數總合'] = df['本月增加股數總合'].replace({',': ''}, regex=True).astype(float)
-                    df['持股增加金額'] = df['本月增加股數總合'] * df['當月收盤價']
+                    # df['本月增加股數(集中市場)'] = df['本月增加股數(集中市場)'].replace({',': ''}, regex=True).astype(float)
+                    df['持股增加金額'] = df['本月增加股數(集中市場)'] * df['當月收盤價']
                 else:
                     df['持股增加金額'] = None
 
@@ -171,8 +170,8 @@ def fetch_all_insider_stock_changes(year, month):
                     print(f"已將中途數據保存")
 
             else:
-                logging.info(f"股票 {code} 本月增加股數總合為 0")
-                print(f"股票 {code} 本月增加股數總合為 0")
+                logging.info(f"股票 {code} 本月增加股數(集中市場)為 0")
+                print(f"股票 {code} 本月增加股數(集中市場)為 0")
                 
 
             # 每次請求後暫停一段時間

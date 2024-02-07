@@ -5,7 +5,7 @@ import logging
 
 def convert_to_dataframe(data):
     # 將數據轉換為 DataFrame
-    df = pd.DataFrame(data, columns=['身份別', '姓名', '持股種類', '自有集中/自有其它/私募股數/信託股數/質權股數', '本月增加股數總合'])
+    df = pd.DataFrame(data, columns=['身份別', '姓名', '持股種類', '本月增加股數(集中市場)'])
     return df
 
 def process_and_sort_dataframe(df, primary_col):
