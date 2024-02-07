@@ -1,22 +1,13 @@
+import time
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
-import time
 from fake_useragent import UserAgent
-import logging
-from datetime import datetime
 import twstock
 from custom_stock import CustomStock
-from insider_stock_notifier import send_email
-import configparser
+import logging
+import pandas as pd
+from data_process import convert_to_dataframe, process_and_sort_dataframe
 
-# 設置日誌配置
-logging.basicConfig(filename='log.txt', 
-                    filemode='a', # a: append, w: overwrite
-                    format='%(asctime)s: %(message)s', 
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO,
-                    encoding='utf-8')
 
 def safe_request(url, data):
     # 生成隨機的 User-Agent
@@ -88,11 +79,6 @@ def fetch_insider_stock_changes(year, month, co_id):
     
     return extracted_data
 
-def convert_to_dataframe(data):
-    # 將數據轉換為 DataFrame
-    df = pd.DataFrame(data, columns=['身份別', '姓名', '持股種類', '自有集中/自有其它/私募股數/信託股數/質權股數', '本月增加股數總合'])
-    return df
-
 
 def fetch_taiwan_stock_codes():
     logging.info("正在獲取所有台股代號")
@@ -108,6 +94,7 @@ def fetch_taiwan_stock_codes():
     valid_stock_codes = [code for code, info in stock_codes.items() if info.type in ['股票', '普通股']]
 
     return valid_stock_codes
+
 
 def fetch_first_day_close_price(year, month, stock_code):
     logging.info(f"正在獲取 {stock_code} 的當月收盤價")
@@ -211,62 +198,3 @@ def fetch_all_insider_stock_changes(year, month):
     print("數據爬取完成")
 
     return adjusted_data
-
-def process_and_sort_dataframe(df, primary_col):
-    # 調整行的順序，將指定行移至最前面
-    cols = [primary_col] + [col for col in df.columns if col != primary_col]
-    df = df[cols]
-
-    # 移除所有欄位完全相同的重複記錄
-    df = df.drop_duplicates()
-
-    # 按照「持股增加金額」降序排序
-    df = df.sort_values(by='持股增加金額', ascending=False)
-
-    return df
-
-
-def save_dataframe_to_excel_with_timestamp(df, year, month):
-    # 生成包含時間戳記的檔案名稱
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_name = f"{year}_{month}_insider_stock_changes_{timestamp}.xlsx"
-    
-    try:
-        df.to_excel(file_name, index=False)
-        print(f"數據已成功保存到 {file_name}")
-        logging.info(f"數據已成功保存到 {file_name}")
-
-    except Exception as e:
-        print(f"保存數據時出錯: {e}")
-        logging.error(f"保存數據時出錯: {e}")
-        file_name = None  # 如果出現錯誤，返回 None
-
-    return file_name
-
-def send_report_email(year, month, file_name):
-    logging.info("正在發送郵件")
-    print("正在發送郵件")
-
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-
-    recipient_emails = config['RECIPIENTS']['Emails'].split(', ')
-    data_folder_url = config['DATA']['FolderURL']
-
-    # 從 HTML 文件讀取模板
-    with open('html_body_template.html', 'r', encoding='utf-8') as file:
-        html_body_template = file.read()
-
-    # 格式化 HTML 內容
-    html_body = html_body_template.format(year=year, month=month, url=data_folder_url, file_name=file_name)
-    # 發送郵件
-    send_email(f"{year}年{month}月份 內部人持股異動報告", html_body, recipient_emails)
-
-
-# 使用函數示例
-year = 112
-month = 12
-combined_data = fetch_all_insider_stock_changes(year, month)
-file_name = save_dataframe_to_excel_with_timestamp(combined_data, year, month)
-if file_name:
-    send_report_email(year, month, file_name)

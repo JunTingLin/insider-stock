@@ -30,10 +30,22 @@ def send_email(subject, body, recipient_emails):
         print(f"發送郵件時出現錯誤: {e}")
 
 
-# 確保已經有適當的日誌配置設定
-logging.basicConfig(filename='log.txt', 
-                    filemode='a',  # a: append, w: overwrite
-                    format='%(asctime)s: %(message)s', 
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO,
-                    encoding='utf-8')
+def send_report_email(year, month, file_name):
+    logging.info("正在發送郵件")
+    print("正在發送郵件")
+
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+
+    recipient_emails = config['RECIPIENTS']['Emails'].split(', ')
+    data_folder_url = config['DATA']['FolderURL']
+
+    # 從 HTML 文件讀取模板
+    with open('html_body_template.html', 'r', encoding='utf-8') as file:
+        html_body_template = file.read()
+
+    # 格式化 HTML 內容
+    html_body = html_body_template.format(year=year, month=month, url=data_folder_url, file_name=file_name)
+    # 發送郵件
+    send_email(f"{year}年{month}月份 內部人持股異動報告", html_body, recipient_emails)
+
