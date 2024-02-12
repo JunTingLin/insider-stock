@@ -17,6 +17,8 @@ sender_password = config['EMAIL']['Pass']
 folder_id = config['DATA']['FolderID']
 folder_url = f"https://drive.google.com/drive/folders/{folder_id}"
 output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output')
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 # 設置日誌
 logger_config.setup_logging()

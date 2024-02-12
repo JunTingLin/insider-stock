@@ -1,0 +1,13 @@
+[EMAIL]
+# 發送郵件的 Gmail 帳號
+User = your-email@gmail.com
+# 發送郵件的 Gmail 密碼或應用程式密碼
+Pass = your-password
+
+[RECIPIENTS]
+# 郵件接收者的郵箱地址，多個收件人用逗號分隔
+Emails = recipient1@example.com, recipient2@example.com
+
+[DATA]
+# Google Drive 上的目標資料夾ID，用於儲存上傳的報表檔案
+FolderID = your-folder-id
