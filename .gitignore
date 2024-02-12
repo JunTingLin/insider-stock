@@ -2,3 +2,4 @@ tables
 config.ini
 __pycache__
 logs
+service-account-file.json
