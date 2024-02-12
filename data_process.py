@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import datetime
 import logging
+import os
 
 
 def convert_to_dataframe(data):
@@ -22,15 +23,16 @@ def process_and_sort_dataframe(df, primary_col):
     return df
 
 
-def save_dataframe_to_excel_with_timestamp(df, year, month):
+def save_dataframe_to_excel_with_timestamp(df, year, month, output_dir):
     # 生成包含時間戳記的檔案名稱
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_name = f"{year}_{month}_insider_stock_changes_{timestamp}.xlsx"
+    save_path = os.path.join(output_dir, file_name)
     
     try:
-        df.to_excel(file_name, index=False)
-        print(f"數據已成功保存到 {file_name}")
-        logging.info(f"數據已成功保存到 {file_name}")
+        df.to_excel(save_path, index=False)
+        print(f"數據已成功保存到 {save_path}")
+        logging.info(f"數據已成功保存到 {save_path}")
 
     except Exception as e:
         print(f"保存數據時出錯: {e}")

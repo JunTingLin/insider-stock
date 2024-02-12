@@ -7,6 +7,7 @@ from custom_stock import CustomStock
 import logging
 import pandas as pd
 from data_process import convert_to_dataframe, process_and_sort_dataframe
+import os
 
 
 def safe_request(url, data):
@@ -120,7 +121,7 @@ def fetch_first_day_close_price(year_str, month_str, stock_code):
         return None
 
 
-def fetch_all_insider_stock_changes(year_str, month_str):
+def fetch_all_insider_stock_changes(year_str, month_str, output_dir):
     logging.info(f"開始爬取數據: {year_str}年 {month_str}月")
     print(f"開始爬取數據: {year_str}年 {month_str}月")
 
@@ -135,6 +136,9 @@ def fetch_all_insider_stock_changes(year_str, month_str):
     last_closing_price = None  # 用於儲存上一個股票的收盤價
 
     save_interval = 100  # 每處理100個股票代號後保存一次
+
+    temp_file_name = f"{year_str}_{month_str}_temp.xlsx"
+    temp_save_path = os.path.join(output_dir, temp_file_name)
 
     # 遍歷每個股票代號
     for index, code in enumerate(stock_codes):
@@ -168,9 +172,9 @@ def fetch_all_insider_stock_changes(year_str, month_str):
 
                 # 每處理指定數量的股票代號後保存一次
                 if (index + 1) % save_interval == 0:
-                    all_data.to_excel(f"{year_str}_{month_str}_temp.xlsx", index=False, encoding='utf_8_sig')
-                    logging.info(f"已將中途數據保存")
-                    print(f"已將中途數據保存")
+                    all_data.to_excel(temp_save_path, index=False, encoding='utf_8_sig')
+                    logging.info(f"已將中途數據保存到{temp_save_path}")
+                    print(f"已將中途數據保存{temp_save_path}")
 
             else:
                 logging.info(f"股票 {code} 本月增加股數(集中市場)為 0")
@@ -184,14 +188,14 @@ def fetch_all_insider_stock_changes(year_str, month_str):
         # 當使用者中斷程式時，執行以下代碼
             logging.warning("用戶中斷了程式，保存當前數據")
             print("用戶中斷了程式，保存當前數據")
-            all_data.to_excel(f"{year_str}_{month_str}_temp.xlsx", index=False, encoding='utf_8_sig')
+            all_data.to_excel(temp_save_path, index=False, encoding='utf_8_sig')
             raise  # 可以選擇再次引發異常，或者直接結束程式
         
         except Exception as e:
             logging.error(f"處理代碼 {code} 時出錯: {e}")
             print(f"處理代碼 {code} 時出錯: {e}")
             # 出錯時保存當前進度
-            all_data.to_excel(f"{year_str}_{month_str}_temp.xlsx", index=False, encoding='utf_8_sig')
+            all_data.to_excel(temp_save_path, index=False, encoding='utf_8_sig')
 
 
     adjusted_data = process_and_sort_dataframe(all_data, '股票代號')
