@@ -98,7 +98,7 @@ def fetch_taiwan_stock_codes():
 
 def fetch_first_day_close_price(year_str, month_str, stock_code):
     logging.info(f"正在獲取 {stock_code} 的當月收盤價")
-    print(f"正在獲取 {stock_code} 的當月收盤價")
+    # print(f"正在獲取 {stock_code} 的當月收盤價")
     # 創建一個 CustomStock 物件
     stock = CustomStock(stock_code)
 
@@ -140,13 +140,15 @@ def fetch_all_insider_stock_changes(year_str, month_str, output_dir):
     temp_file_name = f"{year_str}_{month_str}_temp.xlsx"
     temp_save_path = os.path.join(output_dir, temp_file_name)
 
+    print(f"共有 {total_stocks} 個股票代號，開始逐一爬取數據")
+    logging.info(f"共有 {total_stocks} 個股票代號，開始逐一爬取數據")
     # 遍歷每個股票代號
     for index, code in enumerate(stock_codes):
         try:
             # 計算並打印進度
             progress = (index + 1) / total_stocks * 100
             logging.info(f"正在爬取股票 {code} ({progress:.2f}%)")
-            print(f"正在爬取股票 {code} ({progress:.2f}%)")
+            # print(f"正在爬取股票 {code} ({progress:.2f}%)")
 
             # 獲取該股票代號的內部人員股票變動數據
             insider_data = fetch_insider_stock_changes(year_str, month_str, code)
@@ -178,7 +180,7 @@ def fetch_all_insider_stock_changes(year_str, month_str, output_dir):
 
             else:
                 logging.info(f"股票 {code} 本月增加股數(集中市場)為 0")
-                print(f"股票 {code} 本月增加股數(集中市場)為 0")
+                # print(f"股票 {code} 本月增加股數(集中市場)為 0")
                 
 
             # 每次請求後暫停一段時間
