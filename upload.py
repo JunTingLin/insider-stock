@@ -2,6 +2,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 import logging
+import os
 
 # 設置權限範圍
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
@@ -9,7 +10,8 @@ SCOPES = ['https://www.googleapis.com/auth/drive.file']
 def login_google_drive():
     creds = None
     # 使用服務帳戶的 JSON 憑證
-    creds = service_account.Credentials.from_service_account_file('service-account-file.json', scopes=SCOPES)
+    creds_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'service-account-file.json')
+    creds = service_account.Credentials.from_service_account_file(creds_path, scopes=SCOPES)
 
     return build('drive', 'v3', credentials=creds)
 

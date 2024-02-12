@@ -2,6 +2,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
+import os
 
 def send_email(subject, body, recipient_emails, sender_email, sender_password):
     msg = MIMEMultipart()
@@ -27,8 +28,10 @@ def send_report_email(year, month, file_name, file_url, folder_url, recipient_em
     logging.info("正在發送郵件")
     print("正在發送郵件")
 
+    template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'template', 'html_body_template.html')
+
     # 從 HTML 文件讀取模板
-    with open('html_body_template.html', 'r', encoding='utf-8') as file:
+    with open(template_path, 'r', encoding='utf-8') as file:
         html_body_template = file.read()
 
     # 格式化 HTML 內容
