@@ -32,7 +32,7 @@ def send_report_email(year, month, file_name, file_url, folder_url, recipient_em
         html_body_template = file.read()
 
     # 格式化 HTML 內容
-    html_body = html_body_template.format(year=year, month=month, url=folder_url, file_name=file_name)
+    html_body = html_body_template.format(year=year, month=month, folder_url=folder_url, file_url=file_url, file_name=file_name)
     # 發送郵件
     send_email(f"{year}年{month}月份 內部人持股異動報告", html_body, recipient_emails, sender_email, sender_password)
 

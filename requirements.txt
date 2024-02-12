@@ -7,5 +7,7 @@ pandas
 beautifulsoup4
 jupyterlab
 twstock
-
+google-api-python-client # 以下三個為google上傳套件
+google-auth-httplib2
+google-auth-oauthlib
 
