@@ -9,6 +9,18 @@ import pandas as pd
 from data_process import convert_to_dataframe, process_and_sort_dataframe
 import os
 from FinMind.data import DataLoader
+import configparser
+
+# 讀取配置文件
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# 從配置文件中獲取 FinMind token
+finmind_token = config['FINMIND']['Token']
+
+# 使用 token 創建 DataLoader 實例並進行登錄
+api = DataLoader()
+api.login_by_token(api_token=finmind_token)
 
 
 def safe_request(url, data):
@@ -85,11 +97,8 @@ def fetch_taiwan_stock_codes():
     logging.info("正在獲取所有台股代號")
     print("正在獲取所有台股代號")
 
-    # 初始化 DataLoader
-    data_loader = DataLoader()
-
     # 獲取台灣上市公司的股票代號列表
-    taiwan_stocks = data_loader.taiwan_stock_info()
+    taiwan_stocks = api.taiwan_stock_info()
 
     # 篩選符合條件的股票代號
     filtered_stocks = taiwan_stocks[
@@ -109,8 +118,6 @@ def fetch_taiwan_stock_codes():
 def fetch_first_day_close_price(year_str, month_str, stock_code):
     logging.info(f"正在獲取 {stock_code} 的當月收盤價")
     # print(f"正在獲取 {stock_code} 的當月收盤價")
-    # 創建一個 CustomStock 物件
-    data_loader = DataLoader()
 
     # 將年份和月份從字串轉換為整數，並將民國年轉換為西元年
     year = int(year_str) + 1911
@@ -122,7 +129,7 @@ def fetch_first_day_close_price(year_str, month_str, stock_code):
     
     # 獲取股票價格資料
     try:
-        stock_data = data_loader.taiwan_stock_daily(
+        stock_data = api.taiwan_stock_daily(
             stock_id=stock_code, start_date=start_date, end_date=end_date
         )
         if not stock_data.empty:
@@ -142,7 +149,7 @@ def fetch_all_insider_stock_changes(year_str, month_str, output_dir):
 
     # 獲取所有台股代號
     stock_codes = fetch_taiwan_stock_codes()
-    stock_codes = stock_codes[:20]  # 為了範例只取前20個
+    # stock_codes = stock_codes[:20]  # 為了範例只取前20個。
     total_stocks = len(stock_codes)
 
     # 初始化一個空的 DataFrame 來存放所有數據

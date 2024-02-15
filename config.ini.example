@@ -11,3 +11,6 @@ Emails = recipient1@example.com, recipient2@example.com
 [DATA]
 # Google Drive 上的目標資料夾ID，用於儲存上傳的報表檔案
 FolderID = your-folder-id
+
+[FINMIND]
+Token = your_finmind_token_here
