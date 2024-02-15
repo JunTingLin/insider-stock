@@ -8,6 +8,7 @@ import logging
 import pandas as pd
 from data_process import convert_to_dataframe, process_and_sort_dataframe
 import os
+from FinMind.data import DataLoader
 
 
 def safe_request(url, data):
@@ -84,14 +85,23 @@ def fetch_taiwan_stock_codes():
     logging.info("正在獲取所有台股代號")
     print("正在獲取所有台股代號")
 
-    # 更新股票代號資料庫
-    twstock.__update_codes()
+    # 初始化 DataLoader
+    data_loader = DataLoader()
 
-    # 獲取所有台灣上市櫃公司的股票代號
-    stock_codes = twstock.twse
+    # 獲取台灣上市公司的股票代號列表
+    taiwan_stocks = data_loader.taiwan_stock_info()
 
-    # 篩選出類型為「股票」或「普通股」的代號
-    valid_stock_codes = [code for code, info in stock_codes.items() if info.type in ['股票', '普通股']]
+    # 篩選符合條件的股票代號
+    filtered_stocks = taiwan_stocks[
+    ~taiwan_stocks["industry_category"].isin(["ETF", "上櫃指數股票型基金(ETF)", "Index", "大盤", "存託憑證"]) &
+    (taiwan_stocks["type"] == "twse") &
+    (taiwan_stocks["stock_id"].str.len() == 4) &
+    (taiwan_stocks["stock_id"].str.isdigit())
+    ]
+
+    # 獲取符合條件的股票代號列表
+    valid_stock_codes = filtered_stocks["stock_id"].tolist()
+
 
     return valid_stock_codes
 
@@ -100,24 +110,29 @@ def fetch_first_day_close_price(year_str, month_str, stock_code):
     logging.info(f"正在獲取 {stock_code} 的當月收盤價")
     # print(f"正在獲取 {stock_code} 的當月收盤價")
     # 創建一個 CustomStock 物件
-    stock = CustomStock(stock_code)
+    data_loader = DataLoader()
 
-    # 將年份和月份從字串轉換為整數
-    year = int(year_str)
+    # 將年份和月份從字串轉換為整數，並將民國年轉換為西元年
+    year = int(year_str) + 1911
     month = int(month_str)
-    # 將民國年轉換為西元年
-    year += 1911
-
-    # 獲取指定年月的股票交易資料
-    stock_data = stock.fetch_from(year, month)
-
-    if stock_data:
-        first_day_data = stock_data[0]
-        first_day_close_price = first_day_data.close
-        return first_day_close_price
-    else:
-        logging.warning(f"無法獲取 {stock_code} 的當月收盤價")
-        print(f"無法獲取 {stock_code} 的當月收盤價")
+    
+    # 計算查詢的起始日期和結束日期
+    start_date = f"{year}-{month:02d}-01"
+    end_date = f"{year}-{month:02d}-01"  # 假設只需要當月的第一天
+    
+    # 獲取股票價格資料
+    try:
+        stock_data = data_loader.taiwan_stock_daily(
+            stock_id=stock_code, start_date=start_date, end_date=end_date
+        )
+        if not stock_data.empty:
+            first_day_close_price = stock_data.iloc[0]['close']
+            return first_day_close_price
+        else:
+            logging.warning(f"無法獲取 {stock_code} 的當月收盤價，股票資料為空。")
+            return None
+    except Exception as e:
+        logging.error(f"獲取 {stock_code} 的當月收盤價時發生錯誤: {e}")
         return None
 
 
