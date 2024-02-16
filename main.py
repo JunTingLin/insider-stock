@@ -9,7 +9,7 @@ import os
 
 
 config = configparser.ConfigParser()
-config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.ini')
+config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config_env.ini')
 config.read(config_path)
 recipient_emails = config['RECIPIENTS']['Emails'].split(', ')
 sender_email = config['EMAIL']['User']

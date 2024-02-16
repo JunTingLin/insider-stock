@@ -1,5 +1,5 @@
 tables
-config.ini
+config_*.ini
 __pycache__
 logs
 service-account-file.json

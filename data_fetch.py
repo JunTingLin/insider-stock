@@ -81,19 +81,31 @@ def fetch_insider_stock_changes(year_str, month_str, co_id):
 
 
 def fetch_taiwan_stock_codes():
-    logging.info("正在獲取所有台股代號")
-    print("正在獲取所有台股代號")
+    logging.info("正在從 CSV 文件獲取所有台股代號")
+    print("正在從 CSV 文件獲取所有台股代號")
 
-    # 更新股票代號資料庫
-    twstock.__update_codes()
+    # 指定 CSV 檔案的路徑
+    csv_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'twse_equities.csv')
 
-    # 獲取所有台灣上市櫃公司的股票代號
-    stock_codes = twstock.twse
+    try:
+        # 讀取 CSV 檔案
+        df = pd.read_csv(csv_file_path)
 
-    # 篩選出類型為「股票」或「普通股」的代號
-    valid_stock_codes = [code for code, info in stock_codes.items() if info.type in ['股票', '普通股']]
+        # 篩選出類型為「股票」或「普通股」的代號
+        valid_df = df[df['type'].isin(['股票', '普通股'])]
 
-    return valid_stock_codes
+        # 獲取股票代號列表
+        valid_stock_codes = valid_df['code'].tolist()
+
+        return valid_stock_codes
+    except FileNotFoundError:
+        logging.error(f"找不到檔案：{csv_file_path}")
+        print(f"找不到檔案：{csv_file_path}")
+        return []
+    except Exception as e:
+        logging.error(f"讀取 CSV 檔案時發生錯誤：{e}")
+        print(f"讀取 CSV 檔案時發生錯誤：{e}")
+        return []
 
 
 def fetch_first_day_close_price(year_str, month_str, stock_code):
