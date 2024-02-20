@@ -80,7 +80,7 @@ def fetch_insider_stock_changes(year_str, month_str, co_id):
     return extracted_data
 
 
-def fetch_taiwan_stock_codes():
+def fetch_taiwan_stock_codes_from_csv():
     logging.info("正在從 CSV 文件獲取所有台股代號")
     print("正在從 CSV 文件獲取所有台股代號")
 
@@ -106,6 +106,31 @@ def fetch_taiwan_stock_codes():
         logging.error(f"讀取 CSV 檔案時發生錯誤：{e}")
         print(f"讀取 CSV 檔案時發生錯誤：{e}")
         return []
+    
+def fetch_taiwan_stock_codes_online():
+    logging.info("正在獲取所有台股代號")
+    print("正在獲取所有台股代號")
+
+    # 更新股票代號資料庫
+    twstock.__update_codes()
+
+    # 獲取所有台灣上市櫃公司的股票代號
+    stock_codes = twstock.twse
+
+    # 篩選出類型為「股票」或「普通股」的代號
+    valid_stock_codes = [code for code, info in stock_codes.items() if info.type in ['股票', '普通股']]
+
+    return valid_stock_codes
+
+def fetch_taiwan_stock_codes(mode='csv'):
+    if mode == 'csv':
+        return fetch_taiwan_stock_codes_from_csv()
+    elif mode == 'online':
+        return fetch_taiwan_stock_codes_online()
+    else:
+        logging.error(f"不支持的模式：{mode}")
+        return []
+
 
 
 def fetch_first_day_close_price(year_str, month_str, stock_code):
@@ -138,7 +163,7 @@ def fetch_all_insider_stock_changes(year_str, month_str, output_dir):
     print(f"開始爬取數據: {year_str}年 {month_str}月")
 
     # 獲取所有台股代號
-    stock_codes = fetch_taiwan_stock_codes()
+    stock_codes = fetch_taiwan_stock_codes(mode='online')
     stock_codes = stock_codes[:20]  # 為了範例只取前20個
     total_stocks = len(stock_codes)
 
