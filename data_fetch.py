@@ -186,7 +186,7 @@ def fetch_all_insider_stock_changes(year_str, month_str, output_dir):
 
                 # 每處理指定數量的股票代號後保存一次
                 if (index + 1) % save_interval == 0:
-                    all_data.to_excel(temp_save_path, index=False, encoding='utf_8_sig')
+                    all_data.to_excel(temp_save_path, index=False)
                     logging.info(f"已將中途數據保存到{temp_save_path}")
                     print(f"已將中途數據保存{temp_save_path}")
 
@@ -202,14 +202,14 @@ def fetch_all_insider_stock_changes(year_str, month_str, output_dir):
         # 當使用者中斷程式時，執行以下代碼
             logging.warning("用戶中斷了程式，保存當前數據")
             print("用戶中斷了程式，保存當前數據")
-            all_data.to_excel(temp_save_path, index=False, encoding='utf_8_sig')
+            all_data.to_excel(temp_save_path, index=False)
             raise  # 可以選擇再次引發異常，或者直接結束程式
         
         except Exception as e:
             logging.error(f"處理代碼 {code} 時出錯: {e}")
             print(f"處理代碼 {code} 時出錯: {e}")
             # 出錯時保存當前進度
-            all_data.to_excel(temp_save_path, index=False, encoding='utf_8_sig')
+            all_data.to_excel(temp_save_path, index=False)
 
 
     adjusted_data = process_and_sort_dataframe(all_data, '股票代號')
